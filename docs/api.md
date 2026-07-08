@@ -79,8 +79,28 @@ if you drive your own loop.
 ## CLI
 
 ```bash
-python -m mc3api        # connection + game state status dump
+python -m mc3api            # one-shot connection + game state dump
+python -m mc3api.monitor    # LIVE dashboard — watch state + events while playing
 ```
+
+### Live monitor
+
+`python -m mc3api.monitor` is the play-test tool. It shows current state
+(money, race position, wins, tournaments, collectibles, routes, last event) and
+streams every check-worthy change as it happens, so you can spot problems live:
+
+```
+  MONEY   6600 -> 7300  (+700)
+  RACE    route 0x3E  WIN   best 61.01s  -> CHECK
+  LOGO    city 0  #1  (total 1)  -> CHECK
+  TOURN   wins -> 1  -> CHECK
+```
+
+Flags:
+- `--all` — also log raw stat changes (any tag), so you can catch in-game
+  actions the mapper doesn't yet recognize.
+- `--plain` — append-only log with no screen clearing (for basic terminals).
+- `--interval 0.5` — poll cadence in seconds.
 
 ## Rules for extending
 

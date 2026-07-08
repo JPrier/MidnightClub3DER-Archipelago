@@ -39,6 +39,13 @@ python install.py --archipelago "C:/ProgramData/Archipelago"
 
    You should see `Connected: MC3Game(... build=13)` and live money/stats.
 
+3. To watch state and events live while you play (great for testing):
+
+   ```bash
+   python -m mc3api.monitor          # dashboard + event stream
+   python -m mc3api.monitor --all    # also show every raw stat change
+   ```
+
 ## Playing an Archipelago seed
 
 1. Generate a seed with the MC3 world (see the APWorld setup guide).
