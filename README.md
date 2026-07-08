@@ -4,31 +4,36 @@ Full-coverage Archipelago randomizer for Midnight Club 3: DUB Edition Remix (PS2
 
 ## Status
 
-🚧 **Phase 0 — Architecture & contracts** — domain model, reducer, invariants, fake E2E
+🚧 **Phase 2 — Modding API live** — `mc3api` package connects to stock PCSX2 and
+reads/writes confirmed game state; check detection works by polling.
 
 | Layer | Status |
 |---|---|
-| Domain (pure Python) | ✅ 16/16 invariant tests passing |
+| **mc3api modding API** | ✅ live-verified (money, stats catalog, vehicles, events) |
+| Stats catalog decoding | ✅ collectibles/wins/tournaments/routes confirmed |
+| Poll-based check detection | ✅ GameWatcher (no hooks needed for detection) |
+| PCSX2 bridge (stock) | ✅ mailbox scan + EE-space read/write |
+| Unit + emulator tests | ✅ 25 passing |
+| Domain (pure Python) | ✅ invariant tests passing |
 | APWorld skeleton | ✅ generated |
 | Client application | 🚧 service stubs in place |
-| Port interfaces | ✅ defined |
-| Fake AP server | ✅ |
-| Fake game runtime | ✅ |
-| SQLite persistence | ✅ schema + adapter |
-| Scenario runner | ✅ |
-| Payload (C) | ⬜ pending EE toolchain setup |
-| PCSX2 bridge (stock) | ⬜ pending emulator setup |
-| Reverse engineering | ⬜ pending game/emulator access |
+| Payload (PNACH/MIPS) | ✅ mailbox + SetCarCfg trampoline (build 13) |
+| Gating/blocking hooks | ⬜ needs hook discovery (see targets.yaml) |
 
 ## Quick Start
 
 ```bash
-# Run domain tests
-python -m pytest client/mc3ap/domain/invariants.py -v
+pip install -e .[dev]
 
-# Install for APWorld development
-pip install -e .
+# Status dump against a running game
+python -m mc3api
+
+# Tests (emulator suite auto-skips if PCSX2 isn't running)
+python -m pytest tests/unit tests/emulator
 ```
+
+See [docs/api.md](docs/api.md) for the full modding API reference and
+[docs/stats_catalog.md](docs/stats_catalog.md) for the check-detection core.
 
 ## Architecture
 

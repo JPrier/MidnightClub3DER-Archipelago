@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mc3api"
+version = "0.1.0"
+description = "Modding API for Midnight Club 3: DUB Edition Remix (PS2/PCSX2)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "MC3AP contributors" }]
+keywords = ["midnight club 3", "pcsx2", "modding", "archipelago", "randomizer"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+ap = ["websockets>=12"]
+
+[tool.setuptools.packages.find]
+include = ["mc3api*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
