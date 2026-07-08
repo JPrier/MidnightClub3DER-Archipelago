@@ -16,8 +16,12 @@ keywords = ["midnight club 3", "pcsx2", "modding", "archipelago", "randomizer"]
 dev = ["pytest>=8", "pytest-asyncio>=0.23", "websockets>=12"]
 ap = ["websockets>=12"]
 
+[project.scripts]
+mc3ap = "mc3ap.runner:main"
+
 [tool.setuptools.packages.find]
-include = ["mc3api*"]
+where = [".", "client"]
+include = ["mc3api*", "mc3ap*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "client/mc3ap/domain/invariants.py"]
