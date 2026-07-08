@@ -13,7 +13,7 @@ authors = [{ name = "MC3AP contributors" }]
 keywords = ["midnight club 3", "pcsx2", "modding", "archipelago", "randomizer"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "websockets>=12"]
 ap = ["websockets>=12"]
 
 [tool.setuptools.packages.find]
@@ -25,3 +25,4 @@ addopts = "-q"
 markers = [
     "emulator: requires a running PCSX2 with MC3 + MC3AP pnach (auto-skips)",
 ]
+asyncio_mode = "auto"
