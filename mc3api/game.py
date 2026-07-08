@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import struct
+from pathlib import Path
 from typing import List, Optional
 
 from .bridge import PCSX2Bridge
+from .dealer import DealerLockState, DealerProbeRow, DealerRowsSnapshot
 from .memmap import MAP, MemoryMap
 from .stats import StatsCatalog
 from .vehicles import Vehicle, read_vehicles
@@ -74,6 +76,38 @@ class MC3Game:
 
     def vehicles(self) -> List[Vehicle]:
         return read_vehicles(self.bridge, self.map)
+
+    # ── Dealer / showroom state ─────────────────────────────────────────
+
+    def dealer_lock_state(self) -> DealerLockState:
+        from .dealer import read_lock_state
+        return read_lock_state()
+
+    def dealer_rows(
+        self,
+        table_addr: int | None = None,
+        allow_scan: bool = False,
+    ) -> DealerRowsSnapshot:
+        from .dealer import read_dealer_rows
+        return read_dealer_rows(self, table_addr, allow_scan)
+
+    def dealer_probe_rows(self, report: Path, addresses: list[int] | None = None) -> list[DealerProbeRow]:
+        from .dealer import read_probe_rows
+        return read_probe_rows(self, report, addresses)
+
+    def write_dealer_probe_values(
+        self,
+        report: Path,
+        source_capture: str,
+        addresses: list[int],
+        width: int = 4,
+    ) -> dict[int, bytes]:
+        from .dealer import write_values_from_report
+        return write_values_from_report(self, report, source_capture, addresses, width)
+
+    def restore_dealer_probe_values(self, originals: dict[int, bytes]):
+        from .dealer import restore_values
+        restore_values(self, originals)
 
     # ── Payload mailbox ──────────────────────────────────────────────────
 

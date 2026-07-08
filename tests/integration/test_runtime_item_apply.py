@@ -4,6 +4,7 @@ against a fake game (no emulator)."""
 import pytest
 
 from mc3api.stats import TAGS
+from mc3api.events import PurchaseDetected
 from mc3ap.adapters.pcsx2.check_mapper import CheckResolver
 from mc3ap.adapters.pcsx2.mc3api_runtime import MC3ApiRuntime
 
@@ -93,6 +94,10 @@ class TestItemApplication:
         rt = make_runtime(game)
         rt.apply_money_total(10000)
         assert game.money == 10000
+        assert not [
+            e for e in rt._watcher.poll_once()
+            if isinstance(e, PurchaseDetected)
+        ]
 
     def test_money_apply_is_idempotent(self):
         game = FakeGame(6600, BASE)

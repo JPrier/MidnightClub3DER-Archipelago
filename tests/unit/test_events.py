@@ -6,6 +6,7 @@ from mc3api.events import (
     CollectiblePicked,
     GameWatcher,
     MoneyChanged,
+    PurchaseDetected,
     RouteCompleted,
     StatChanged,
 )
@@ -78,6 +79,28 @@ class TestGameWatcher:
         ev = events[0]
         assert isinstance(ev, MoneyChanged)
         assert ev.delta == 700
+
+    def test_purchase_detected_from_wallet_drop(self):
+        game = FakeGame()
+        game.set_state(13900, BASE)
+        w = make_watcher(game)
+        game.set_state(8900, BASE)
+        events = w.poll_once()
+        purchases = [e for e in events if isinstance(e, PurchaseDetected)]
+        assert len(purchases) == 1
+        assert purchases[0].amount == 5000
+        assert purchases[0].wallet_before == 13900
+        assert purchases[0].wallet_after == 8900
+        assert purchases[0].ordinal == 1
+
+    def test_injected_money_is_not_purchase(self):
+        game = FakeGame()
+        game.set_state(6600, BASE)
+        w = make_watcher(game)
+        w.note_injected_money(5000)
+        game.set_state(11600, BASE)
+        events = w.poll_once()
+        assert not [e for e in events if isinstance(e, PurchaseDetected)]
 
     def test_collectible_pickup_first_ever(self):
         game = FakeGame()

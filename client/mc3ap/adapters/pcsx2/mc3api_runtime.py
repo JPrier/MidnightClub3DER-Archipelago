@@ -86,7 +86,9 @@ class MC3ApiRuntime:
         """
         self._money_floor = max(self._money_floor, total_ap_money)
         if self._game.money < self._money_floor:
+            injected = self._money_floor - self._game.money
             self._game.money = self._money_floor
+            self._watcher.note_injected_money(injected)
 
     def record_pending_item(self, item_name: str):
         """Record an item whose in-game effect needs a not-yet-built hook."""

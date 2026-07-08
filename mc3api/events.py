@@ -58,6 +58,20 @@ class StatChanged(GameEvent):
     new: int
 
 
+@dataclass(frozen=True)
+class PurchaseDetected(GameEvent):
+    """Money left the wallet without matching career earnings — a purchase.
+
+    Signature (validated on s13->s14 dumps): spent = earnings_delta - wallet_delta.
+    Covers car purchases, performance/visual upgrades, paint — the game's only
+    money sinks. `ordinal` counts purchases seen this session (1-based).
+    """
+    amount: int
+    wallet_before: int
+    wallet_after: int
+    ordinal: int
+
+
 class GameWatcher:
     """Polls game state and yields GameEvents.
 
@@ -73,6 +87,14 @@ class GameWatcher:
         self._game = game
         self._last_stats: Optional[Dict[Tuple[str, int], int]] = None
         self._last_money: Optional[int] = None
+        self._purchase_count = 0
+        # Money the watcher's owner injected since last poll (item grants /
+        # refunds). Excluded from the purchase signature so applying an AP
+        # money item is never mistaken for (or masks) a purchase.
+        self._injected_money = 0
+
+    def note_injected_money(self, delta: int):
+        self._injected_money += delta
 
     def poll_once(self) -> List[GameEvent]:
         now = time.time()
@@ -84,6 +106,19 @@ class GameWatcher:
 
         if self._last_money is not None and money != self._last_money:
             events.append(MoneyChanged(now, self._last_money, money))
+
+        # Purchase signature: wallet dropped more than earnings explain.
+        if self._last_money is not None and self._last_stats is not None:
+            earn_prev = self._last_stats.get((TAGS.CAREER_EARNINGS, 0), 0)
+            earn_now = snap.get((TAGS.CAREER_EARNINGS, 0), 0)
+            wallet_delta = (money - self._last_money) - self._injected_money
+            spent = (earn_now - earn_prev) - wallet_delta
+            if spent > 0:
+                self._purchase_count += 1
+                events.append(PurchaseDetected(
+                    now, amount=spent, wallet_before=self._last_money,
+                    wallet_after=money, ordinal=self._purchase_count))
+        self._injected_money = 0
 
         if self._last_stats is not None:
             prev = self._last_stats

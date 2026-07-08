@@ -74,6 +74,13 @@ Needs specific savestates the current save can't reach:
   non-Vanessa event.
 - **Part catalog** — the part shop open with categories unlocked.
 - **Class unlock flags** — before/after a class unlock.
+- **Showroom vehicle state** — current work has isolated `Prize` vs `Locked`
+  UI clusters and live showroom text fields, but not the authoritative
+  unlock bit yet.
+- **Static metadata comparison** — the catalog at `0x007D28B0` and the
+  `vp_is300_04_reward` block at `0x00717F88` match between current-state and
+  `s15` garage scans, so they look like stable metadata rather than the live
+  unlock decision source.
 
 `s17-freeroam-sd-current.p2s` was captured this session (San Diego, $13,900).
 
