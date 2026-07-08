@@ -1,14 +1,7 @@
 """Integration test: MC3ApiRuntime item application + check detection
 against a fake game (no emulator)."""
 
-import sys
-from pathlib import Path
-
 import pytest
-
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "client"))
 
 from mc3api.stats import TAGS
 from mc3ap.adapters.pcsx2.check_mapper import CheckResolver

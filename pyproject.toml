@@ -20,5 +20,8 @@ ap = ["websockets>=12"]
 include = ["mc3api*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "client/mc3ap/domain/invariants.py"]
 addopts = "-q"
+markers = [
+    "emulator: requires a running PCSX2 with MC3 + MC3AP pnach (auto-skips)",
+]

@@ -3,16 +3,7 @@
 No emulator needed; drives the mapper with synthetic mc3api events.
 """
 
-import sys
-import time
-from pathlib import Path
-
 import pytest
-
-# Make both mc3api and the client package importable
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "client"))
 
 from mc3api.events import CollectiblePicked, MoneyChanged, RouteCompleted, StatChanged
 from mc3api.stats import TAGS

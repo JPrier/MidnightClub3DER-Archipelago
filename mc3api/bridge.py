@@ -8,30 +8,40 @@ read/write primitives addressed in EE space.
 from __future__ import annotations
 
 import ctypes
-import ctypes.wintypes
 import struct
 import subprocess
+import sys
 import time
 from typing import Optional
 
 from .memmap import MAP, GAME_CRC
+
+# The bridge drives the Win32 process-memory API. Importing this module must
+# still succeed on non-Windows (so the pure-logic package and its tests import
+# cleanly in CI); connect() raises a clear error off-Windows instead.
+_WINDOWS = sys.platform == "win32"
 
 
 class BridgeError(RuntimeError):
     pass
 
 
-class _MBI(ctypes.Structure):
-    _fields_ = [
-        ("BaseAddress", ctypes.c_void_p),
-        ("AllocationBase", ctypes.c_void_p),
-        ("AllocationProtect", ctypes.wintypes.DWORD),
-        ("PartitionId", ctypes.wintypes.WORD),
-        ("RegionSize", ctypes.c_size_t),
-        ("State", ctypes.wintypes.DWORD),
-        ("Protect", ctypes.wintypes.DWORD),
-        ("Type", ctypes.wintypes.DWORD),
-    ]
+if _WINDOWS:
+    import ctypes.wintypes
+
+    class _MBI(ctypes.Structure):
+        _fields_ = [
+            ("BaseAddress", ctypes.c_void_p),
+            ("AllocationBase", ctypes.c_void_p),
+            ("AllocationProtect", ctypes.wintypes.DWORD),
+            ("PartitionId", ctypes.wintypes.WORD),
+            ("RegionSize", ctypes.c_size_t),
+            ("State", ctypes.wintypes.DWORD),
+            ("Protect", ctypes.wintypes.DWORD),
+            ("Type", ctypes.wintypes.DWORD),
+        ]
+else:  # pragma: no cover - non-Windows import shim
+    _MBI = None
 
 
 _MEM_COMMIT = 0x1000
@@ -46,6 +56,8 @@ class PCSX2Bridge:
     """
 
     def __init__(self, pid: int, ee_base_host: int):
+        if not _WINDOWS:
+            raise BridgeError("PCSX2Bridge requires Windows (Win32 process-memory API)")
         self.pid = pid
         self._ee_base = ee_base_host
         self._k32 = ctypes.windll.kernel32

@@ -20,6 +20,9 @@ def _live_game():
         pytest.skip(f"PCSX2 running but game/payload not ready: {e}")
 
 
+pytestmark = pytest.mark.emulator
+
+
 @pytest.fixture(scope="module")
 def game():
     g = _live_game()
