@@ -1,0 +1,1 @@
+"""MC3 Archipelago Client — domain-driven AP integration for Midnight Club 3: DUB Edition Remix."""

@@ -1,0 +1,19 @@
+# Dev tools not needed at generation/runtime
+tools/
+payload/
+
+# Extracted game data (generated at seed time or loaded from user setup)
+data/generated_catalog/
+data/static_catalog/*.dat
+
+# Dev docs
+docs/design.md
+docs/reverse_engineering_checklists.md
+
+# Tests not needed at runtime
+test/emulator/
+test/e2e/
+
+# Python cache
+__pycache__
+*.pyc

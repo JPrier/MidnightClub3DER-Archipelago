@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# State
+.omx/
+*.db
+
+# Build artifacts
+payload/build/
+*.elf
+*.o
+
+# Memory dumps & snapshots — contain raw game RAM (copyrighted content), never publish
+dumps/
+dump_*.json
+full_snap*.json
+snapshot_state*.json
+snapshots_*.json
+state*.json
+artifacts/
+
+# Game files — NEVER publish
+*.iso
+*.7z
+*.p2s
+*.bin

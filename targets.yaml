@@ -1,0 +1,141 @@
+# MC3 Discovery Targets — single source of truth for all RE targets
+# Updated per mc3_automated_discovery_method.md
+
+targets:
+  # ── Confirmed ──────────────────────────────────────────────────────────
+  money:
+    kind: data_field
+    status: confirmed
+    address: 0x00800870
+    type: u32
+    validate: [read_write_roundtrip]
+
+  money_earned:
+    kind: data_field
+    status: confirmed
+    address: 0x00800874
+    type: u32
+
+  player_race_position:
+    kind: data_field
+    status: confirmed
+    address: 0x007CA044
+    type: u32
+    validate: [diff_first_vs_third]
+
+  event_catalog_ptr:
+    kind: pointer
+    status: confirmed
+    address: 0x00800878
+    points_to: 0x007C9EF0
+
+  profile_ptr:
+    kind: pointer
+    status: confirmed
+    address: 0x00619B14
+    points_to: 0x007D2310
+
+  vehicle_list_ptr:
+    kind: pointer
+    status: confirmed
+    address: 0x006E0170
+    points_to: 0x007D28B0
+
+  on_load_career_done:
+    kind: jal_hook
+    status: confirmed
+    patch_addr: 0x001B0C20
+    original_instr: 0x0C06C624
+    original_target: 0x001B1890
+
+  set_car_cfg:
+    kind: jal_hook
+    status: confirmed
+    patch_addr: 0x004AE100
+    original_instr: 0x0C1748E0
+    original_target: 0x005D2380
+
+  # ── needs_savestate_diff ───────────────────────────────────────────────
+  current_city:
+    kind: data_field
+    status: needs_savestate_diff
+    needed_states: [san_diego_free_roam, atlanta_free_roam]
+    search_ranges: ["0x00600000-0x00900000"]
+    search_types: [u8, u16, u32]
+
+  city_unlock_flags:
+    kind: data_field
+    status: needs_savestate_diff
+    needed_states: [san_diego_locked, atlanta_unlocked, detroit_unlocked]
+    search_ranges: ["0x00619000-0x007D4000"]
+
+  garage_ownership:
+    kind: data_structure
+    status: needs_savestate_diff
+    needed_states: [garage_one_vehicle, garage_three_vehicles]
+
+  current_event_id:
+    kind: data_field
+    status: needs_savestate_diff
+    needed_states: [event_prompt_vanessa, event_prompt_tournament]
+    search_ranges: ["0x00600000-0x00900000"]
+
+  class_unlock_flags:
+    kind: data_field
+    status: needs_savestate_diff
+    needed_states: [class_d_locked, class_c_unlocked]
+
+  part_catalog:
+    kind: data_structure
+    status: needs_savestate_diff
+    needed_states: [part_shop_open]
+
+  # ── needs_static_hook_discovery ────────────────────────────────────────
+  on_race_finished:
+    kind: unsafe_instruction_site
+    status: needs_static_hook_discovery
+    observed_addr: 0x003EDAC8
+    original_instr: 0x00800008
+    decoded: "jr a0"
+    goal: find safe race-finish hook point
+
+  on_race_over:
+    kind: unsafe_instruction_site
+    status: needs_static_hook_discovery
+    observed_addr: 0x003EE860
+    original_instr: 0x24050004
+    decoded: "addiu a1, zero, 4"
+
+  on_save_data_1:
+    kind: unsafe_instruction_site
+    status: needs_static_hook_discovery
+    observed_addr: 0x001AE8A0
+    original_instr: 0x00000000
+    decoded: "nop"
+
+  on_save_data_2:
+    kind: unsafe_instruction_site
+    status: needs_static_hook_discovery
+    observed_addr: 0x001AF4F8
+    original_instr: 0x27A40030
+    decoded: "addiu a0, sp, 0x30"
+
+  on_create_savegame:
+    kind: unsafe_instruction_site
+    status: needs_static_hook_discovery
+    observed_addr: 0x001AF098
+    original_instr: 0xFFBF0078
+    decoded: "sd ra, 0x78(sp)"
+
+  # ── needs_writer_discovery ─────────────────────────────────────────────
+  vanilla_reward_writer:
+    kind: writer
+    status: needs_writer_discovery
+    target_field: city_unlock_flags
+    goal: find function that writes city unlock flags
+
+  # ── needs_blocking_discovery ───────────────────────────────────────────
+  event_start_gate:
+    kind: gate
+    status: needs_blocking_discovery
+    goal: find safe deny path for starting an event
