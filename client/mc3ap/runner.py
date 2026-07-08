@@ -97,9 +97,10 @@ async def run_client(server: str, slot: str, password: str = "",
     applier = ItemApplier(item_map)
 
     async def one_iteration():
-        # 1. Receive items from AP and apply them.
+        # 1. Receive items from AP and apply them. Short timeout so a quiet
+        #    server never starves the game-check poll below.
         try:
-            new_items = await ap.poll()
+            new_items = await ap.poll(timeout=poll_interval)
         except Exception as e:  # transient socket read
             log(f"[AP] poll error: {e}")
             new_items = []

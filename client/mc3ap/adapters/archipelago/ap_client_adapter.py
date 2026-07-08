@@ -10,8 +10,9 @@ server sends Connected (with slot_data) or ConnectionRefused.
 
 from __future__ import annotations
 
+import asyncio
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from . import ap_protocol as proto
 
@@ -88,11 +89,20 @@ class ArchipelagoClient:
 
     # ── incoming ─────────────────────────────────────────────────────────
 
-    async def poll(self) -> List[proto.ReceivedItem]:
+    async def poll(self, timeout: Optional[float] = None) -> List[proto.ReceivedItem]:
         """Read one batch of server messages, apply items, handle resync.
-        Returns any newly received items."""
+        Returns any newly received items.
+
+        With `timeout`, returns [] if no message arrives in that window instead
+        of blocking — this keeps a single-threaded client loop responsive so it
+        can also poll the game for checks between server messages.
+        """
         new_items: List[proto.ReceivedItem] = []
-        for pkt in await self._recv_any():
+        try:
+            packets = await self._recv_any(timeout=timeout)
+        except asyncio.TimeoutError:
+            return []
+        for pkt in packets:
             cmd = pkt.get("cmd")
             if cmd == "ReceivedItems":
                 result = self._tracker.apply(pkt)
@@ -114,8 +124,11 @@ class ArchipelagoClient:
     async def _send(self, packet: Dict[str, Any]):
         await self._ws.send(json.dumps([packet]))
 
-    async def _recv_any(self) -> List[Dict[str, Any]]:
-        raw = await self._ws.recv()
+    async def _recv_any(self, timeout: Optional[float] = None) -> List[Dict[str, Any]]:
+        if timeout is None:
+            raw = await self._ws.recv()
+        else:
+            raw = await asyncio.wait_for(self._ws.recv(), timeout=timeout)
         data = json.loads(raw)
         return data if isinstance(data, list) else [data]
 

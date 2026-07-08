@@ -18,7 +18,7 @@ class FakeAP:
         self._batches = list(item_batches)
         self.sent_checks = []
 
-    async def poll(self):
+    async def poll(self, timeout=None):
         return self._batches.pop(0) if self._batches else []
 
     async def send_location_checks(self, ids):

@@ -80,6 +80,26 @@ async def test_connect_and_receive_items():
 
 
 @pytest.mark.asyncio
+async def test_poll_timeout_returns_empty_on_quiet_server():
+    # Regression: poll() must not block forever when the server is idle,
+    # otherwise the single-threaded client loop can never poll the game.
+    server = MiniAPServer(script=[])  # nothing after Connected
+    ws_server = await _serve(server)
+    try:
+        client = ArchipelagoClient("Midnight Club 3: DUB Edition Remix")
+        await client.connect(_url(ws_server), "Josh")
+        import time
+        t0 = time.monotonic()
+        result = await client.poll(timeout=0.2)
+        assert result == []
+        assert time.monotonic() - t0 < 2.0   # returned promptly, did not hang
+        await client.disconnect()
+    finally:
+        ws_server.close()
+        await ws_server.wait_closed()
+
+
+@pytest.mark.asyncio
 async def test_connection_refused_raises():
     server = MiniAPServer(script=[], refuse=True)
     ws_server = await _serve(server)
