@@ -10,10 +10,10 @@ deliverables. Supersedes the older `COMPLETE_STATUS.md` snapshot.
 | # | Deliverable | State | Notes |
 |---|---|---|---|
 | 1 | Modding API | ✅ **done** | `mc3api` package, live-verified, 25 tests |
-| 2 | N-tier Archipelago mod | 🟡 **game-side done** | check detection + item apply wired & tested; AP-websocket client still stubbed |
+| 2 | N-tier Archipelago mod | 🟢 **runnable end-to-end** | AP websocket client + game bridge + `python -m mc3ap` loop, all tested; gating hooks remain for *enforcing* locks |
 | 3 | One-click install | ✅ **done** | `install.bat` / `install.py`, verified against local PCSX2 |
 | 4 | GitHub + draft PR | 🟡 **repo pushed** | own repo live; official-AP PR needs Archipelago checkout (see below) |
-| 5 | Integration tests + validation | ✅ **foundation done** | 58 tests, CI on 3.10–3.13, emulator suite auto-skips |
+| 5 | Integration tests + validation | ✅ **done** | 73 tests, CI on 3.10–3.13, emulator suite auto-skips |
 
 ## What works right now (verified live)
 
@@ -38,16 +38,20 @@ game hooks**.
 
 ## Remaining work
 
-### Deliverable 2 — AP protocol client (biggest remaining piece)
-The domain/reducer, ports, and game-side adapter exist and are tested. Still to
-build:
-- `adapters/archipelago/ap_client_adapter.py` — real websocket AP client
-  (currently a stub) implementing connect / ReceivedItems / LocationChecks /
-  Sync per protocol.
-- `application/client_service.py` main loop: AP items → reducer →
-  `MC3ApiRuntime.apply_*`; runtime checks → `send_location_checks`.
-- Requires an Archipelago checkout to integration-test (`BaseClasses` etc. are
-  not vendored here).
+### Deliverable 2 — runnable, remaining work is gating enforcement
+The full pipeline exists and is tested end-to-end:
+- `adapters/archipelago/ap_protocol.py` + `ap_client_adapter.py` — websocket AP
+  client with connect/ReceivedItems/LocationChecks/Sync and gap-resync.
+- `adapters/pcsx2/mc3api_runtime.py` + `check_mapper.py` — game bridge.
+- `runner.py` (`python -m mc3ap --server … --slot …`) — the live loop that
+  applies AP items and sends detected checks.
+
+What's left for full coverage:
+- **Enforcing** locks (block a locked car/city/part). Detection needs no hooks;
+  enforcement needs the gating hooks below. Until then non-money items are
+  recorded as `pending_items` (surfaced, not lost).
+- Richer item semantics (progressive vehicles/parts) once the curated catalog
+  and gating hooks land.
 
 ### Deliverable 4 — official Archipelago PR
 Own repo is pushed. To open the draft PR against `ArchipelagoMW/Archipelago`:

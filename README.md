@@ -32,7 +32,14 @@ python -m mc3api
 python -m pytest tests/unit tests/emulator
 ```
 
-See [docs/api.md](docs/api.md) for the full modding API reference and
+Run the Archipelago client against a live game:
+
+```bash
+python -m mc3ap --server wss://archipelago.gg:38281 --slot YourName
+```
+
+See [docs/api.md](docs/api.md) for the modding API, [docs/INSTALL.md](docs/INSTALL.md)
+for setup, [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for the roadmap, and
 [docs/stats_catalog.md](docs/stats_catalog.md) for the check-detection core.
 
 ## Architecture
