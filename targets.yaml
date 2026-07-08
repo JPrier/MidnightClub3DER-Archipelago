@@ -1,0 +1,19 @@
+
+  # ── Vehicle availability (2026-07-08 conclusion) ───────────────────────
+  vehicle_unlock_flag:
+    kind: data_field
+    status: refuted_not_stored
+    note: >
+      ~60 captures incl. temporal s13/s14 unlock diff and full heap
+      0x900000-0x1A00000: no per-vehicle unlock flag exists in RAM.
+      Availability is COMPUTED from static per-vehicle requirements
+      (rank / reward-event, e.g. vp_is300_04_reward @ 0x00717F88) plus
+      career progression. See artifacts/vehicle_lock_mapping/FINDINGS_REPORT.md.
+
+  dealer_availability_gate:
+    kind: gate
+    status: needs_static_hook_discovery
+    goal: >
+      Find the dealer availability-decision function via ELF xrefs to
+      vehicle metadata reward/rank fields or Locked/ShowRoomPrice strings;
+      hook with AP allowlist consult (deny AND force-grant).
