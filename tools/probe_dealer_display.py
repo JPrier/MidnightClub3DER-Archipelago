@@ -20,7 +20,6 @@ Usage:
 
 from __future__ import annotations
 
-import struct
 import sys
 from pathlib import Path
 
@@ -29,25 +28,19 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
 
 from mips_assembler import MIPSAssembler, R  # noqa: E402
+from mc3api.dealer_display import (  # noqa: E402
+    RING_BASE, RING_RECS, REC_COUNT, REC_SIZE, SITE, TRAMP_ADDR,
+    DisplayProbeRing, encode_jal,
+)
 
-SITE = 0x00329480
 ORIG_INSTR = 0x27BDFFA0          # addiu sp, sp, -96 (verified via mips_disasm.py func 0x00329480)
 RETURN_ADDR = 0x00329484         # site + 4, function's second instruction
 CARCFG_INDEX_FN = 0x004AF870     # (carCfg) -> catalog index
 VEHLIST_PTR = 0x006E0170
 VEH_STRIDE = 0x1C
 
-TRAMP_ADDR = 0x00720E00
 SCRATCH_RA = 0x00720DF0
 SCRATCH_CTX = 0x00720DF4
-RING_BASE = 0x00720D00
-RING_RECS = 0x00720D10
-REC_SIZE = 0x10
-REC_COUNT = 8
-
-
-def encode_jal(target: int) -> int:
-    return 0x0C000000 | ((target >> 2) & 0x03FFFFFF)
 
 
 def build_trampoline() -> bytes:
@@ -150,17 +143,13 @@ def cmd_restore():
 
 def cmd_status():
     game = connect()
-    count = game.read_u32(RING_BASE)
-    head = game.read_u32(RING_BASE + 4)
-    print(f"call_count={count} ring_head={head}")
-    vehicles = {v.index: v.name for v in game.vehicles()}
-    for i in range(REC_COUNT):
-        rec = game.read(RING_RECS + i * REC_SIZE, REC_SIZE)
-        index, f04, f08, submode = struct.unpack("<4I", rec)
-        if index == 0 and f04 == 0 and f08 == 0 and submode == 0:
-            continue
-        name = vehicles.get(index, "?")
-        print(f"  [{i}] idx={index:3d} {name:<22s} f04={f04} f08={f08} submode={submode}")
+    ring = DisplayProbeRing(game.bridge)
+    names = {v.index: v.name for v in game.vehicles()}
+    print(f"call_count={ring.call_count()}")
+    for rec in ring.recent(names):
+        name = rec.vehicle_name or "?"
+        print(f"  idx={rec.vehicle_index:3d} {name:<22s} "
+              f"f04={rec.class_field} f08={rec.rank_field} submode={rec.submode}")
     game.close()
 
 

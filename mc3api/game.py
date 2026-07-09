@@ -103,7 +103,27 @@ class MC3Game:
                 names.append(name)
         return names
 
-    # ── Dealer / showroom state ─────────────────────────────────────────
+    # ── AP enforcement / probe hooks (installed by tools/hook_purchase.py,
+    #    tools/probe_dealer_display.py — optional, absent until installed) ──
+
+    def purchase_ring(self):
+        """Reader for the purchase-detect hook's ring (0x00337A7C)."""
+        from .purchase_hook import PurchaseRing
+        return PurchaseRing(self.bridge)
+
+    def vehicle_permits(self):
+        """Reader/writer for the purchase deny-gate's permit table (0x003378BC)."""
+        from .purchase_hook import PermitTable
+        return PermitTable(self.bridge)
+
+    def dealer_display_probe(self):
+        """Reader for the non-mutating showroom item-display probe (0x00329480)."""
+        from .dealer_display import DisplayProbeRing
+        return DisplayProbeRing(self.bridge)
+
+    # ── Dealer / showroom state (legacy LAYER3-era probes — the tagged
+    #    objects here were proven to be render OUTPUT, not the authoritative
+    #    lock source; kept only for continuity, not shown by default) ──────
 
     def dealer_lock_state(self) -> DealerLockState:
         from .dealer import read_lock_state

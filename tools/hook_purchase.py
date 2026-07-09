@@ -44,13 +44,16 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
 
 from mips_assembler import MIPSAssembler, R  # noqa: E402
+from mc3api.purchase_hook import (  # noqa: E402
+    DENY_SITE, DENY_TRAMP, DETECT_SITE, DETECT_TRAMP, ENFORCE_FLAG,
+    PERMIT_SIZE, PERMIT_TABLE, REC_COUNT, REC_SIZE, RING_BASE, RING_RECS,
+    encode_jal,
+)
 
 # ── Game call sites (verified original instructions) ────────────────────────
-DETECT_SITE = 0x00337A7C
 DETECT_ORIG = 0x0C0CDCDE          # jal 0x00337378 (SpendMoney)
 SPEND_MONEY = 0x00337378
 
-DENY_SITE = 0x003378BC
 DENY_ORIG = 0x0C0C8212            # jal 0x00320848 (UISet int)
 UI_SET = 0x00320848
 
@@ -61,21 +64,6 @@ WALLET = 0x00800870
 # ctx (shopCtx) field offsets
 CTX_RECPTRS = 0x071C              # base of per-showroom record pointer array
 CTX_SELECTED = 0x072C             # u32 selected index into that array
-
-# ── Mailbox regions ─────────────────────────────────────────────────────────
-ENFORCE_FLAG = 0x007205FC
-PERMIT_TABLE = 0x00720600
-PERMIT_SIZE = 96
-DETECT_TRAMP = 0x00720920
-DENY_TRAMP = 0x00720A00
-RING_BASE = 0x00720B00
-RING_RECS = 0x00720B10
-REC_SIZE = 0x10
-REC_COUNT = 16
-
-
-def encode_jal(target: int) -> int:
-    return 0x0C000000 | ((target >> 2) & 0x03FFFFFF)
 
 
 # ── Trampoline builders ─────────────────────────────────────────────────────

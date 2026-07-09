@@ -1,13 +1,13 @@
-"""Reader/writer for the dealer purchase hooks installed by
-tools/hook_purchase.py.
+"""Reader/writer for the dealer purchase hooks. This module is the single
+source of truth for their mailbox layout — tools/hook_purchase.py (which
+builds and installs the trampolines) imports these constants rather than
+redefining them.
 
 Detect ring:   the DETECT trampoline (0x00337A7C) appends one record per
                confirmed purchase. We drain new records since the last read
                and resolve each vehicle name from the record pointer.
 Permit table:  the DENY trampoline (0x003378BC) reads permit_table[index] and
                an enforce flag; this module writes both from the AP allow-set.
-
-The mailbox layout MUST match tools/hook_purchase.py.
 """
 
 from __future__ import annotations
@@ -16,12 +16,14 @@ import struct
 from dataclasses import dataclass
 from typing import List, Optional
 
-# Mailbox layout (mirror of tools/hook_purchase.py)
+# Mailbox layout
 ENFORCE_FLAG = 0x007205FC
 PERMIT_TABLE = 0x00720600
 PERMIT_SIZE = 96
 DETECT_SITE = 0x00337A7C
 DETECT_TRAMP = 0x00720920
+DENY_SITE = 0x003378BC
+DENY_TRAMP = 0x00720A00
 RING_BASE = 0x00720B00
 RING_RECS = 0x00720B10
 REC_SIZE = 0x10
@@ -29,8 +31,9 @@ REC_COUNT = 16
 CARCFG_NAME_OFFSET = 0xDF
 
 
-def _detect_jal() -> int:
-    return 0x0C000000 | ((DETECT_TRAMP >> 2) & 0x03FFFFFF)
+def encode_jal(target: int) -> int:
+    """Encode a MIPS ``jal target`` word. Shared with tools/hook_purchase.py."""
+    return 0x0C000000 | ((target >> 2) & 0x03FFFFFF)
 
 
 @dataclass(frozen=True)
@@ -61,7 +64,7 @@ class PurchaseRing:
 
     def installed(self) -> bool:
         try:
-            return self._bridge.read_u32(DETECT_SITE) == _detect_jal()
+            return self._bridge.read_u32(DETECT_SITE) == encode_jal(DETECT_TRAMP)
         except Exception:
             return False
 
@@ -108,6 +111,12 @@ class PermitTable:
 
     def __init__(self, bridge):
         self._bridge = bridge
+
+    def installed(self) -> bool:
+        try:
+            return self._bridge.read_u32(DENY_SITE) == encode_jal(DENY_TRAMP)
+        except Exception:
+            return False
 
     def apply(self, allowed_indices, enforce: bool):
         allowed = set(allowed_indices)
