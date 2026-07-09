@@ -17,3 +17,52 @@
       Find the dealer availability-decision function via ELF xrefs to
       vehicle metadata reward/rank fields or Locked/ShowRoomPrice strings;
       hook with AP allowlist consult (deny AND force-grant).
+
+  # ── Purchase flow (2026-07-08 static-analysis breakthrough) ────────────
+  # Full chain mapped via cheat anchor 0x00337A9C + static xref.
+  # See artifacts/PURCHASE_FLOW_STATIC_ANALYSIS.md.
+
+  garage_ownership:
+    kind: data_structure
+    status: confirmed
+    base: 0x006E0900          # garage_mgr(0x006E0398)+0x568, carCfg[30]
+    count_addr: 0x006E08FC    # u8, cap 30
+    slot_stride: 0x104        # sizeof(carCfg)
+    name_offset: 0xDF         # c-string vp_*; empty slots read "blank"
+    note: live-verified (count=2, slot0=vp_d_scion_tc_05); equipped car
+      lives in profile carCfg, not a garage slot.
+
+  shop_spend_money:
+    kind: jal_hook
+    status: candidate_static
+    patch_addr: 0x00337A7C    # JAL 0x00337378 SpendMoney(ctx, newTotal)
+    original_instr: 0x0C0CDCDE
+    original_target: 0x00337378
+    goal: purchase-detect hook (vehicle idx via 0x004AF870, amount = delta)
+
+  shop_buy_confirm:
+    kind: jal_hook
+    status: candidate_static
+    patch_addr: 0x003378A8    # JAL 0x00334AA0 inside buy-confirm branch
+    original_instr: 0x0C0CD2A8
+    original_target: 0x00334AA0
+    goal: AP Vehicle Permit deny gate (skip pending flag 0x006179BD,
+      send oktobuy=2 via game's own error path)
+
+  purchase_pending_flag:
+    kind: data_field
+    status: confirmed_static
+    address: 0x006179BD       # u8, set 1 on buy confirm, cleared by consumer
+
+  shop_wallet_store:
+    kind: instruction_site
+    status: confirmed
+    address: 0x00337A9C       # sw a3,0xAC0(v0); the public cheat NOPs this
+
+  dealer_availability_gate:
+    kind: gate
+    status: needs_static_hook_discovery
+    note: superseding earlier entry — narrow the search to the showroom
+      UI-list builder. Item state (3=owned) is pushed into the Flash UI
+      (toplevel.swf) and read back via 0x00320A10; find the setter path
+      from shop-context ctor 0x00324E18 / InShowroom fn 0x003346E0.

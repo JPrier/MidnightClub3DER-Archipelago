@@ -214,6 +214,10 @@ class MIPSAssembler:
         imm = self._imm16(imm)
         self._emit(self._i("ORI", rt, rs, imm), f"ori {rt.name}, {rs.name}, {imm:#x}")
 
+    def andi(self, rt: Reg, rs: Reg, imm: int):
+        imm = self._imm16(imm)
+        self._emit(self._i("ANDI", rt, rs, imm), f"andi {rt.name}, {rs.name}, {imm:#x}")
+
     def lw(self, rt: Reg, base: Reg, offset: int = 0):
         offset = self._imm16(offset)
         self._emit(self._i("LW", rt, base, offset), f"lw {rt.name}, {offset}({base.name})")

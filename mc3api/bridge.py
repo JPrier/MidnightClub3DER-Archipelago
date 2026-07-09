@@ -179,11 +179,25 @@ class PCSX2Bridge:
         return buf.raw[:br.value]
 
     def write(self, ee_addr: int, data: bytes) -> int:
+        host = self._ee_base + ee_addr
         bw = ctypes.c_size_t()
-        ok = self._wpm(self._h, ctypes.c_void_p(self._ee_base + ee_addr), data, len(data), ctypes.byref(bw))
+        ok = self._wpm(self._h, ctypes.c_void_p(host), data, len(data), ctypes.byref(bw))
         if not ok:
-            raise BridgeError(f"write failed at EE 0x{ee_addr:08X}")
+            # PCSX2 write-protects executed code pages (recompiler cache).
+            # Temporarily lift protection, write, restore — PCSX2's own fault
+            # handler picks up the change and invalidates the recompiled block.
+            old = ctypes.wintypes.DWORD()
+            PAGE_READWRITE = 0x04
+            vpe = self._k32.VirtualProtectEx
+            if vpe(self._h, ctypes.c_void_p(host), len(data), PAGE_READWRITE, ctypes.byref(old)):
+                ok = self._wpm(self._h, ctypes.c_void_p(host), data, len(data), ctypes.byref(bw))
+                vpe(self._h, ctypes.c_void_p(host), len(data), old.value, ctypes.byref(ctypes.wintypes.DWORD()))
+            if not ok:
+                raise BridgeError(f"write failed at EE 0x{ee_addr:08X}")
         return bw.value
+
+    def read_u16(self, ee_addr: int) -> int:
+        return struct.unpack("<H", self.read(ee_addr, 2))[0]
 
     def read_u32(self, ee_addr: int) -> int:
         return struct.unpack("<I", self.read(ee_addr, 4))[0]
@@ -200,3 +214,27 @@ class PCSX2Bridge:
         if end >= 0:
             data = data[:end]
         return data.decode("ascii", errors="replace")
+
+    def find_bytes(self, needle: bytes, start: int = 0x00100000, end: int = 0x02000000, step: int = 0x10000) -> list[int]:
+        """Search EE memory for a byte sequence. Returns sorted list of EE addresses."""
+        results = []
+        for base in range(start, end, step):
+            chunk = self.read(base, min(step, end - base))
+            pos = 0
+            while True:
+                pos = chunk.find(needle, pos)
+                if pos < 0:
+                    break
+                results.append(base + pos)
+                pos += 1
+        return results
+
+    def find_u16(self, value: int, start: int = 0x00100000, end: int = 0x02000000, step: int = 0x10000) -> list[int]:
+        """Search EE memory for a u16 value."""
+        import struct
+        return self.find_bytes(struct.pack('<H', value & 0xFFFF), start, end, step)
+
+    def find_u32(self, value: int, start: int = 0x00100000, end: int = 0x02000000, step: int = 0x10000) -> list[int]:
+        """Search EE memory for a u32 value."""
+        import struct
+        return self.find_bytes(struct.pack('<I', value & 0xFFFFFFFF), start, end, step)

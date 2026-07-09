@@ -53,5 +53,7 @@ def read_vehicles(bridge, memmap) -> List[Vehicle]:
     base = bridge.read_u32(memmap.vehicle_list_ptr)
     if not _valid_ee_ptr(base):
         return []
-    raw = bridge.read(base, MAX_VEHICLES * VEHICLE_STRIDE)
+    count = bridge.read_u16(memmap.vehicle_count)  # 94 in Remix
+    n = min(count if 0 < count <= MAX_VEHICLES else MAX_VEHICLES, MAX_VEHICLES)
+    raw = bridge.read(base, n * VEHICLE_STRIDE)
     return parse_vehicle_array(raw, base, lambda p: bridge.read_cstring(p, 32))

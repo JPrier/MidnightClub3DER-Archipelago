@@ -29,10 +29,33 @@ class MemoryMap:
     # ── Global pointers ─────────────────────────────────────────────────
     profile_ptr: int = 0x00619B14      # u32 -> career profile struct
     vehicle_list_ptr: int = 0x006E0170 # u32 -> vehicle array (0x54 stride)
-    vehicle_count_raw: int = 0x006E0174  # non-simple format, do not trust as count
+    vehicle_count: int = 0x006E0174    # u16 — 94 in Remix (full catalog).
+                                     # Read as u16! Upper 16 bits are a separate packed value.
 
     # ── Race state ──────────────────────────────────────────────────────
     live_race_position: int = 0x006BE4F0  # u32, 1..6 during a race
+
+    # ── Garage (static shop/garage manager struct at 0x006E0398) ────────
+    # Live-verified 2026-07-08: count=2, slot 0 name "vp_d_scion_tc_05",
+    # empty slots hold the name "blank". A slot is one carCfg (0x104 bytes,
+    # constructed by 0x004ADC10, copied by 0x004ADDE0).
+    garage_mgr: int = 0x006E0398        # static struct base
+    garage_count: int = 0x006E08FC      # u8 = garage_mgr+0x564, max 30
+    garage_slots: int = 0x006E0900      # = garage_mgr+0x568, carCfg[30]
+    garage_slot_stride: int = 0x104     # sizeof(carCfg) = 260
+    carcfg_name_offset: int = 0xDF      # c-string vehicle name inside carCfg
+
+    # ── Per-vehicle career records (indexed by catalog index) ───────────
+    vehicle_records: int = 0x006E87F4   # = garage_mgr+0x845C, stride 0x1BC
+    vehicle_record_stride: int = 0x1BC  # +0x04 updated by SpendMoney delta
+
+    # ── Shop / purchase flow (static analysis, see artifacts/) ──────────
+    shop_wallet_store: int = 0x00337A9C   # sw a3,0xAC0(v0) — wallet write in shop
+    shop_spend_money_fn: int = 0x00337378 # SpendMoney(shopCtx, newTotal)
+    shop_spend_money_callsite: int = 0x00337A7C  # JAL — purchase-detect hook site
+    shop_buy_confirm_callsite: int = 0x003378A8  # JAL in buy path — deny hook site
+    shop_handler_fn: int = 0x00337610     # "shop" Flash-UI screen handler
+    purchase_pending_flag: int = 0x006179BD  # u8, set 1 on buy confirm
 
     # ── Profile struct offsets (relative to *profile_ptr) ───────────────
     profile_last_event_path: int = 0x69   # c-string, last played event file path

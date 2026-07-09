@@ -74,8 +74,34 @@ class MC3Game:
 
     # ── Vehicles ─────────────────────────────────────────────────────────
 
+    @property
+    def vehicle_count(self) -> int:
+        """Full catalog size (94 in Remix). u16 — confirmed live."""
+        return self.bridge.read_u16(self.map.vehicle_count)
+
     def vehicles(self) -> List[Vehicle]:
         return read_vehicles(self.bridge, self.map)
+
+    # ── Garage ownership (static array, live-verified) ──────────────────
+
+    @property
+    def garage_count(self) -> int:
+        """Number of owned vehicles (u8 at 0x006E08FC, max 30)."""
+        return self.bridge.read(self.map.garage_count, 1)[0]
+
+    def garage_vehicles(self) -> List[str]:
+        """Names of owned vehicles from the garage slot array.
+
+        Empty slots hold the placeholder name "blank" and are skipped.
+        """
+        names = []
+        for i in range(30):
+            slot = self.map.garage_slots + i * self.map.garage_slot_stride
+            raw = self.bridge.read(slot + self.map.carcfg_name_offset, 32)
+            name = raw.split(b"\x00")[0].decode("ascii", errors="replace")
+            if name and name != "blank" and name.startswith("vp_"):
+                names.append(name)
+        return names
 
     # ── Dealer / showroom state ─────────────────────────────────────────
 
