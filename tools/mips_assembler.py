@@ -84,7 +84,7 @@ I_OP = {
     "BEQ":   0x04, "BNE":   0x05,
     "LUI":   0x0F,
     "LW":    0x23, "SW":    0x2B,
-    "LB":    0x20, "SB":    0x28,
+    "LB":    0x20, "SB":    0x28, "LBU":   0x24,
     "ORI":   0x0D,
     "SLTI":  0x0A, "SLTIU": 0x0B,
     "XORI":  0x0E,
@@ -225,6 +225,18 @@ class MIPSAssembler:
     def sw(self, rt: Reg, base: Reg, offset: int = 0):
         offset = self._imm16(offset)
         self._emit(self._i("SW", rt, base, offset), f"sw {rt.name}, {offset}({base.name})")
+
+    def lb(self, rt: Reg, base: Reg, offset: int = 0):
+        offset = self._imm16(offset)
+        self._emit(self._i("LB", rt, base, offset), f"lb {rt.name}, {offset}({base.name})")
+
+    def lbu(self, rt: Reg, base: Reg, offset: int = 0):
+        offset = self._imm16(offset)
+        self._emit(self._i("LBU", rt, base, offset), f"lbu {rt.name}, {offset}({base.name})")
+
+    def sb(self, rt: Reg, base: Reg, offset: int = 0):
+        offset = self._imm16(offset)
+        self._emit(self._i("SB", rt, base, offset), f"sb {rt.name}, {offset}({base.name})")
 
     def beq(self, rs: Reg, rt: Reg, label: str):
         idx = len(self._instructions)

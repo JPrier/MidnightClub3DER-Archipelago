@@ -72,6 +72,20 @@ class PurchaseDetected(GameEvent):
     ordinal: int
 
 
+@dataclass(frozen=True)
+class VehiclePurchased(GameEvent):
+    """Exact dealer purchase captured by the detect hook (0x00337A7C).
+
+    Unlike PurchaseDetected (a statistical wallet/earnings signature), this
+    carries the actual vehicle identity and fires the instant SpendMoney runs.
+    Only present when tools/hook_purchase.py has installed the detect hook.
+    """
+    vehicle_name: str
+    amount: int
+    wallet_before: int
+    ordinal: int
+
+
 class GameWatcher:
     """Polls game state and yields GameEvents.
 
@@ -92,6 +106,16 @@ class GameWatcher:
         # refunds). Excluded from the purchase signature so applying an AP
         # money item is never mistaken for (or masks) a purchase.
         self._injected_money = 0
+        # Exact-purchase ring reader — attached lazily only if the detect hook
+        # is installed; otherwise stays None and poll_once skips it.
+        self._purchase_ring = None
+        try:
+            from .purchase_hook import PurchaseRing
+            ring = PurchaseRing(game.bridge)
+            if ring.installed():
+                self._purchase_ring = ring
+        except Exception:
+            self._purchase_ring = None
 
     def note_injected_money(self, delta: int):
         self._injected_money += delta
@@ -148,6 +172,13 @@ class GameWatcher:
                         events.append(RouteCompleted(now, idx, entry.value, won=win_delta > 0))
                     else:
                         events.append(StatChanged(now, tag, idx, old, raw))
+
+        # Exact dealer purchases from the detect hook (if installed).
+        if self._purchase_ring is not None:
+            for p in self._purchase_ring.drain():
+                events.append(VehiclePurchased(
+                    now, vehicle_name=p.vehicle_name, amount=p.amount,
+                    wallet_before=p.wallet_before, ordinal=p.ordinal))
 
         self._last_stats = snap
         self._last_money = money

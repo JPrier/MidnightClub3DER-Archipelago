@@ -69,24 +69,71 @@ Selected vehicle identity at any of these points:
 
 ## AP enforcement plan enabled by this
 
-1. **Purchase detect (ready to build):** JAL trampoline at `0x00337A7C` → emit
+1. **Purchase detect:** JAL trampoline at `0x00337A7C` → emit
    `PURCHASE(vehicle_index, amount)` to the mailbox. Clean call-site hook, same pattern
    as the verified SetCarCfg hook.
-2. **Vehicle Permit deny gate (ready to design):** trampoline at `0x003378A8` (the JAL
-   inside the buy-confirm branch): read selected vehicle name, check AP permit bitset;
-   if denied, skip the pending-flag write and send `oktobuy=2` with the game's own
-   error-text path (`txtError_limitslots` mechanism) — a native, softlock-free deny.
+2. **Vehicle Permit deny gate:** trampoline at `0x003378BC` (the JAL that sends
+   `oktobuy=1` to the Flash UI, delay slot `a2=1`): resolve the selected vehicle's
+   catalog index via `0x004AF870`, check the AP permit table; if denied, flip `a2` to
+   `0` and clear the pending flag `0x006179BD` before tail-calling the UI setter — a
+   native, softlock-free deny using the game's own cancel path (originally scoped for
+   `0x003378A8`, the earlier UI-text-update call; `0x003378BC` proved the cleaner choke
+   point since it's the actual decision send).
 3. **Ownership checks (DONE, no hook needed):** poll `0x006E0900` slots — already
    exposed via `MC3Game.garage_vehicles()`. Enables "Vehicle Purchased/Owned — <id>"
    AP locations immediately.
 4. **Vehicle Grant (future, primitives known):** write a carCfg into a free slot
    (`0x004ADC10`-style init or copy a template via `0x004ADDE0`), bump `0x006E08FC`,
    request save via `0x001B00B8(career, 1, 0, …)`.
-5. **Dealer availability override (one unknown left):** the showroom Locked/Available
-   state is computed natively and pushed into the Flash UI list when built (read back
-   via `0x00320A10`, item state 3 = owned). Next static target: the list *builder* —
-   follow `0x00320A10`-family setters from the showroom-enter path (`fn 0x00324E18`
-   constructs the shop context; `fn 0x003346E0` = "InShowroom" navigation).
+5. **Dealer availability override (narrowed, downgraded):** the showroom Locked/
+   Available state is computed natively and pushed into the Flash UI list when built.
+   Narrowed to item-display fn `0x00329480` (calls `0x004AF2D0`/`0x004B5B08` to push
+   per-item state). Downgraded to cosmetic polish now that the deny gate blocks
+   purchase regardless of display state — see `docs/DEALER_AVAILABILITY_HUNT.md`.
+
+## BUILT (2026-07-08): hooks + client wiring
+
+`tools/hook_purchase.py` builds and installs both trampolines; the Python client
+consumes them.
+
+- **Detect hook** installed at `0x00337A7C` (non-mutating). Appends
+  `(recptr, amount, wallet_before, ordinal)` to a ring at `0x00720B00`, then
+  tail-calls SpendMoney. `mc3api/purchase_hook.PurchaseRing` drains it;
+  `GameWatcher` emits `VehiclePurchased`; `check_mapper` → `"Vehicle Purchased:
+  <name>"` location.
+- **Deny gate** installed at `0x003378BC`, **enforce=OFF** by default
+  (vanilla-identical: forwards `a2` unchanged). `mc3api/purchase_hook.PermitTable`
+  + `MC3ApiRuntime.set_vehicle_permits(names, enforce)` write `permit_table[index]`
+  (0x1C-catalog index — see stride correction below) and the enforce flag.
+- Both installs verified live against a running PCSX2; game reads normally
+  afterward (money/vehicles/garage all still readable). 43 unit tests green,
+  including MIPS-encoding regression tests on the generated trampolines.
+
+### Live graduation runbook (needs a human at the controls)
+
+Detect:
+1. `python tools/hook_purchase.py status` → count=0.
+2. In PCSX2, buy any car in the dealer.
+3. `python tools/hook_purchase.py status` → count=1, correct name + amount.
+
+Deny:
+1. `python tools/hook_purchase.py permit deny-all` then `python tools/hook_purchase.py enforce 1`
+   (or `permit set <index> 0` for a single car).
+2. Try to buy the denied car in-game → confirm the purchase cancels, money is
+   unchanged, no new garage slot appears, and the dealer menu stays responsive
+   (no softlock).
+3. `python tools/hook_purchase.py permit allow-all` (also clears enforce) to disarm.
+
+## Catalog stride correction
+
+The runtime vehicle catalog `[0x006E0170]` is **0x1C (28) byte** stride, not
+0x54 — the old value read every 3rd entry and walked off the array. True
+indices: `vp_is300_04` = 4, `vp_d_scion_tc_05` = **69** (the old "23" in prior
+docs was `69 / 3`, an artifact of the wrong stride). Fixed in
+`mc3api/vehicles.py`; the permit table's index space depends on this being
+correct, since the game resolves purchases to indices via `0x004AF870` into
+the same 0x1C array. See `docs/DEALER_AVAILABILITY_HUNT.md` for the full
+writeup.
 
 ## Corrections to prior docs
 
@@ -97,3 +144,5 @@ Selected vehicle identity at any of these points:
   `0x006E0900` (stride 0x104, name +0xDF). The profile-side copies are likely
   save-serialization images, not the live garage.
 - `0x006E08FC` in NEXT_STEP_PLAN was unexplained; it is the garage count (u8, cap 30).
+- FINDINGS/fable5 docs listed the Scion tC catalog index as 23; the true index is 69
+  (see catalog stride correction above).

@@ -90,6 +90,22 @@ class MC3ApiRuntime:
             self._game.money = self._money_floor
             self._watcher.note_injected_money(injected)
 
+    def set_vehicle_permits(self, allowed_vehicle_names, enforce: bool = True):
+        """Drive the deny-gate permit table from the AP allow-set.
+
+        Maps vehicle names to catalog indices and writes the permit table +
+        enforce flag consumed by the deny trampoline (0x003378BC). A no-op if
+        the deny hook is not installed. Enforcement blocks *purchasing* a
+        non-permitted car through the game's own cancel path; it does not touch
+        cars already owned.
+        """
+        from mc3api.purchase_hook import PermitTable
+        name_to_index = {v.name: v.index for v in self._game.vehicles()}
+        allowed = {name_to_index[n] for n in allowed_vehicle_names
+                   if n in name_to_index}
+        PermitTable(self._game.bridge).apply(allowed, enforce)
+        return sorted(allowed)
+
     def record_pending_item(self, item_name: str):
         """Record an item whose in-game effect needs a not-yet-built hook."""
         self._pending_items.append(item_name)

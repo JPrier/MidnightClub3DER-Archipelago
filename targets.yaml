@@ -66,3 +66,45 @@
       UI-list builder. Item state (3=owned) is pushed into the Flash UI
       (toplevel.swf) and read back via 0x00320A10; find the setter path
       from shop-context ctor 0x00324E18 / InShowroom fn 0x003346E0.
+
+  # ── Purchase hooks BUILT + installed (2026-07-08) ──────────────────────
+  # tools/hook_purchase.py; docs/PURCHASE_FLOW_STATIC_ANALYSIS.md
+  purchase_detect_hook:
+    kind: jal_hook
+    status: installed_needs_live_graduation
+    patch_addr: 0x00337A7C
+    original_instr: 0x0C0CDCDE
+    trampoline: 0x00720920
+    ring: 0x00720B00          # count|head|records[16]x16B (recptr,amt,wallet,ord)
+    note: non-mutating; appends purchase record then tail-calls SpendMoney.
+      Wired to client as VehiclePurchased event -> "Vehicle Purchased: <id>".
+      Graduate by making one dealer purchase and checking `status` count>0.
+
+  vehicle_permit_deny_gate:
+    kind: jal_hook
+    status: installed_enforce_off
+    patch_addr: 0x003378BC
+    original_instr: 0x0C0C8212
+    trampoline: 0x00720A00
+    enforce_flag: 0x007205FC   # default 0 = vanilla-identical
+    permit_table: 0x00720600   # 96xu8, 1=allow, indexed by 0x1C catalog index
+    note: delay slot sets a2=oktobuy=1; when enforcing, resolves index via
+      0x004AF870 and flips a2->0 + clears pending flag 0x006179BD if permit=0.
+      Graduate live by enforce=1 + deny a cheap car, confirm buy cancels with
+      money/garage intact and no softlock.
+
+  vehicle_catalog_stride:
+    kind: data_structure
+    status: corrected
+    base: 0x006E0170           # -> array of 0x1C-byte mcVehicle entries
+    stride: 0x1C               # was wrongly 0x54 (3x); tC=idx69, is300=idx4
+    fields: {name_ptr: 0x00, category: 0x04, class_rank: 0x08}
+
+  dealer_availability_gate:
+    kind: gate
+    status: narrowed_downgraded
+    note: item-display fn 0x00329480 pushes per-item Locked/Available state
+      into the Flash UI via 0x004AF2D0 / 0x004B5B08, computed from mcVehicle
+      class_rank (entry+0x08) + progression. Downgraded — the deny gate already
+      blocks purchase, so display override is cosmetic. See
+      docs/DEALER_AVAILABILITY_HUNT.md.

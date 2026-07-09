@@ -50,12 +50,16 @@ def tournament_location_name(ordinal: int) -> str:
     return f"Tournament Won #{ordinal}"
 
 
+def vehicle_purchase_location_name(vehicle_name: str) -> str:
+    return f"Vehicle Purchased: {vehicle_name}"
+
+
 @dataclass(frozen=True)
 class DetectedCheck:
     """A location check derived from a game event."""
     location_name: str
-    source: str            # "route" | "collectible" | "tournament"
-    raw_id: int            # route id / city id / tournament ordinal
+    source: str            # "route" | "collectible" | "tournament" | "purchase"
+    raw_id: int            # route id / city id / tournament ordinal / 0
 
 
 def map_event_to_checks(event) -> List[DetectedCheck]:
@@ -64,7 +68,8 @@ def map_event_to_checks(event) -> List[DetectedCheck]:
     Imported lazily so this module has no hard dependency on mc3api at import
     time (keeps the domain/client importable without the API installed).
     """
-    from mc3api.events import CollectiblePicked, RouteCompleted, StatChanged
+    from mc3api.events import (
+        CollectiblePicked, RouteCompleted, StatChanged, VehiclePurchased)
     from mc3api.stats import TAGS
 
     checks: List[DetectedCheck] = []
@@ -80,6 +85,9 @@ def map_event_to_checks(event) -> List[DetectedCheck]:
     elif isinstance(event, StatChanged) and event.tag == TAGS.TOURNAMENT_WINS:
         checks.append(DetectedCheck(
             tournament_location_name(event.new), "tournament", event.new))
+    elif isinstance(event, VehiclePurchased) and event.vehicle_name:
+        checks.append(DetectedCheck(
+            vehicle_purchase_location_name(event.vehicle_name), "purchase", 0))
 
     return checks
 

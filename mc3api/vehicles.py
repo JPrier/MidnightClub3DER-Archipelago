@@ -1,8 +1,15 @@
 """Vehicle catalog reader.
 
 The game builds a vehicle array (pointer at MAP.vehicle_list_ptr) from
-tune/vehicle/vehicle.lst. Entries are 0x54 bytes; +0x00 is a pointer to the
-null-terminated vehicle name (e.g. 'vp_eclipse_04').
+tune/vehicle/vehicle.lst. Entries are 0x1C (28) bytes; +0x00 is a pointer to
+the null-terminated vehicle name (e.g. 'vp_eclipse_04'), +0x08 is a class/rank
+byte. This is the array the game itself indexes (mult by 28) after resolving a
+name via 0x004AF870, so this index space is authoritative for the permit table.
+
+NOTE: an earlier 0x54 stride here was 3x too large — it read every 3rd entry
+and walked off the array end. Symptom: the Scion tC appeared at "index 23"
+(= 69/3) instead of its true index 69. Confirmed live 2026-07-08: 0x1C stride
+yields exactly 94 sequential entries terminated by a null name pointer.
 """
 
 from __future__ import annotations
@@ -12,7 +19,7 @@ from dataclasses import dataclass
 from typing import List
 
 
-VEHICLE_STRIDE = 0x54
+VEHICLE_STRIDE = 0x1C
 MAX_VEHICLES = 128  # Remix ships 94; leave headroom
 
 

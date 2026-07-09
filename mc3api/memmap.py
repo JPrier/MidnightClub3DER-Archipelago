@@ -28,7 +28,7 @@ class MemoryMap:
 
     # ── Global pointers ─────────────────────────────────────────────────
     profile_ptr: int = 0x00619B14      # u32 -> career profile struct
-    vehicle_list_ptr: int = 0x006E0170 # u32 -> vehicle array (0x54 stride)
+    vehicle_list_ptr: int = 0x006E0170 # u32 -> vehicle array (0x1C=28 stride!)
     vehicle_count: int = 0x006E0174    # u16 — 94 in Remix (full catalog).
                                      # Read as u16! Upper 16 bits are a separate packed value.
 
